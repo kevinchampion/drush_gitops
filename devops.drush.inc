@@ -8,6 +8,10 @@
  */
 function devops_drush_command() {
   $commands = array();
+  $commands['devops-init'] = array(
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
+    'description' => 'Initialize the working directory structure for builds and releases.',
+  );
   return $commands;
 }
 
@@ -19,4 +23,10 @@ function devops_drush_help($section) {
     case 'meta:devops:title':
       return dt('Devops');
   }
+}
+
+/**
+ * Initializes a new working directory structure and project for Devops.
+ */
+function drush_devops_init() {
 }
