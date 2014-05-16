@@ -6,11 +6,20 @@
 /*******************************************************************************
  * # TODO
  *
+ * - add documentation
+ * - split out helper functions into their own files
+ * - determine if some procedural steps in command should be broken into their
+ *   own functions
+ *
+ *
  * ## Features
  *
  * - add ability to download private github file using non-token user
  *   credentials (may be helpful for flexibility and ease of use in different
  *   environments)
+ * - add command/s for working with a built site without having to actually run
+ *   builds in your environment by pulling from the buildsrepo but pushing to
+ *   the install profile or other repo
  *
  ******************************************************************************/
 
