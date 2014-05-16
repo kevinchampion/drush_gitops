@@ -33,7 +33,22 @@ function devops_drush_command() {
     ),
     'aliases' => array('ops-init, doi'),
   );
-
+  $commands['devops-build'] = array(
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
+    'description' => 'Run a build of the site, commit the result of the build, and push to the builds repo.',
+    'arguments' => array(
+      'build_file' => 'The file path to the build make file used by drush make, or the file in the repository to download if using the Github download strategy.',
+    ),
+    'required arguments' => 1,
+    'options' => array(
+      'vhost_dir' => 'The directory path to the site root of the vhost.',
+      'github_user' => 'The Github username.',
+      'github_token' => 'The Github user access token.',
+      'github_project' => 'The Github project/repository name.',
+      'github_ref' => 'The repository ref to retrieve the file from (branch, tag).',
+    ),
+    'aliases' => array('ops-build, dob'),
+  );
   return $commands;
 }
 
@@ -200,6 +215,205 @@ function drush_devops_init($vhost_dir = FALSE) {
 
 }
 
+/**
+ * Initializes a new working directory structure and project for DevOps.
+ *
+ * Creates a directory for building the result of the site build into. Creates
+ * a directory for storing a headless repo of the site builds (this is a
+ * separate repo that only tracks site builds, separate from your working
+ * repo/s that contain your individual install profiles and other projects).
+ * Creates the headless repo. Initialize repositories in builds directory and
+ * vhost.
+ */
+function drush_devops_build($build_file = FALSE) {
+
+  // If the vhost directory is not specified, use the current working directory.
+  // Otherwise we will attempt to retrieve the absolute path and ensure it
+  // is actually a directory prior to continuing.
+  $vhost_dir = drush_get_option('vhost_dir', FALSE);
+
+  if (!empty($vhost_dir) && '.' !== $vhost_dir) {
+
+    $vhost_dir = realpath($vhost_dir);
+
+    if (!is_dir($vhost_dir)) {
+      return drush_log(dt('The specified directory is not a directory and/or does not exist.'), 'error');
+    }
+
+  }
+  else {
+
+    $vhost_dir = drush_locate_root(drush_cwd());
+
+    if (!is_dir($vhost_dir)) {
+
+      $vhost_dir = drush_cwd();
+      // Prompt user to ensure they're in the right directory.
+      $confirmation = drush_confirm(dt('You didn\'t pass the site directory parameter, so devops-build assumes you\'re running it from the directory you want to deploy to. Run the build and deploy to this directory: @vhost_dir?', array('@vhost_dir' => $vhost_dir)));
+
+      if (!$confirmation) {
+        return;
+      }
+
+    }
+
+  }
+
+  // Get the build file and download to temporary directory.
+
+  // Store the file name in case we need to download it using the Github
+  // strategy later.
+  $original_build_file = $build_file;
+
+  // Download file from remote location if remote, copies contents of file and
+  // creates clone in temp dir if local.
+  $build_file = devtools_download_file($build_file);
+
+  if (!$build_file) {
+
+    $github_credentials = array(
+      '%user' => drush_get_option('github_user', FALSE),
+      '%token' => drush_get_option('github_token', FALSE),
+      '%project' => drush_get_option('github_project', FALSE),
+      '%file' => $original_build_file,
+      '%ref' => drush_get_option('github_ref', FALSE),
+    );
+
+    // Make sure all the credentials are present.
+    foreach ($github_credentials as $credential => $value) {
+
+      if (empty($value)) {
+
+        drush_set_error(dt("No build file was specified using the --build_file option and one or more Github properties are missing, can't proceed (github_user, github_token, github_project, github_file, github_ref)."));
+
+        return;
+
+      }
+
+    }
+
+    $build_file = _drush_devops_download_private_github_file($github_credentials);
+
+  }
+
+
+  // Run build.
+
+  chdir($vhost_dir);
+
+  $command = 'git config --get remote.buildsrepo.url';
+  drush_shell_exec($command);
+  $builds_repo_dir = drush_shell_exec_output();
+  $builds_repo_dir = $builds_repo_dir[0];
+
+  // Handle input errors to catch mistakes before they cause problems.
+
+  if (!is_dir($builds_repo_dir)) {
+
+    // Buildsrepo directory doesn't exist indicating that devops_init hasn't
+    // been run.
+    drush_set_error(dt("The builds repo directory doesn't exist. Run `drush devops-init` to setup structure or otherwise determine why this directory is not present."));
+
+    return;
+
+  }
+
+  chdir($builds_repo_dir);
+
+  $command = 'git config drushdevops.builddir';
+  drush_shell_exec($command);
+  $builds_dir = drush_shell_exec_output();
+  $builds_dir = $builds_dir[0];
+
+  if (is_dir($builds_dir)) {
+
+    _recursive_rmdir($builds_dir);
+
+  }
+
+  drush_set_option('no-gitinfofile', TRUE);
+  drush_set_option('no-cache', TRUE);
+  drush_set_option('strict', FALSE);
+  drush_invoke('make', array($build_file, $builds_dir));
+
+  if (!is_dir($builds_dir)) {
+
+    // If directory doesn't exist then the build failed and we need to get out
+    // of here.
+    drush_set_error(dt("Site directory doesn't exist, which likely means the build failed, check for errors."));
+
+    return;
+
+  }
+
+  drush_print(dt("Build succeeded, proceed..."));
+
+
+  // Push build result to buildsrepo.
+
+  chdir($builds_dir);
+
+  // Remove all the gitignores
+  // TODO: Should this be done in php instead?
+  $command = 'find . -name ".gitignore" -print0 | xargs -0 rm';
+  drush_shell_exec($command);
+
+  // Create repo.
+  $command = 'git init';
+  drush_shell_exec($command);
+  $command = 'git remote add buildsrepo %s';
+  drush_shell_exec($command, $builds_repo_dir);
+  $command = 'git fetch buildsrepo';
+  drush_shell_exec($command);
+  // Add existing repo gitignore.
+  $command = 'git checkout buildsrepo/7.x-1.x-builds .gitignore';
+  drush_shell_exec($command);
+  $command = 'git add .';
+  drush_shell_exec($command);
+
+  $tag = gmdate('Y-m-d\THi');
+
+  // TODO: Is there more contextual information we can provide beyond just a
+  //       timestamp to describe this build?
+  $command = 'git commit -m "Build %s"';
+  drush_shell_exec($command, $tag);
+  $command = 'git checkout -b 7.x-1.x-builds buildsrepo/7.x-1.x-builds';
+  drush_shell_exec($command);
+  // At this point, master and 7.x-1.x-builds share no common history/ancestor.
+  // As a result, it's not so simple to merge or rebase them as both methods
+  // either tend to throw errors or create merge commits that result in a really
+  // ugly repo history. Instead, use cherry-pick to apply the latest build
+  // commit to the upstream history, using the 'theirs' option to instruct it to
+  // apply the new build on top of upstream no matter what. Also use
+  // 'keep-redundant-commits' to ensure that if the new build does not change
+  // any code from the previous build, a commit is still recorded in the repo
+  // history so that it is an accurate representation of the build history.
+  $command = 'git cherry-pick --keep-redundant-commits --strategy-option=theirs master~0';
+  drush_shell_exec($command);
+  $command = 'git push buildsrepo 7.x-1.x-builds';
+  drush_shell_exec($command);
+  // TODO: Determine if tags should actually be automatically created. There
+  //       could be an argument that they're redundant and unnecessary fluff.
+  //       Alternatively, create an option for the command to auto-create tags
+  //       on each build.
+  $command = 'git tag %s';
+  drush_shell_exec($command, $tag);
+  $command = 'git push buildsrepo --tags';
+  drush_shell_exec($command);
+
+
+  // Deploy new build to vhost.
+
+  chdir($vhost_dir);
+
+  $command = 'git fetch buildsrepo';
+  drush_shell_exec($command, $tag);
+  $command = 'git reset --hard buildsrepo/7.x-1.x-builds';
+  drush_shell_exec($command, $tag);
+
+
+}
+
 
 
 /*******************************************************************************
@@ -277,4 +491,95 @@ function _drush_devops_gitignore() {
 
 }
 
+/**
+ * Utility to remove a directory and all its contents.
+ *
+ * @param string $dir
+ *   Path to the directory that needs to be removed.
+ */
+function _recursive_rmdir($dir) {
 
+  $iterator = new RecursiveDirectoryIterator($dir);
+  foreach (new RecursiveIteratorIterator($iterator, RecursiveIteratorIterator::CHILD_FIRST) as $file) {
+    if ($file->isDir()) {
+       rmdir($file->getPathname());
+    } else {
+       unlink($file->getPathname());
+    }
+  }
+  rmdir($dir);
+
+}
+
+/**
+ * Utility to download a private github file using credentials.
+ *
+ * @param [type] $github_credentials [description]
+ * @return [type]
+ */
+function _drush_devops_download_private_github_file($github_credentials) {
+
+  $url = 'https://api.github.com/repos/%user/%project/contents/%file?access_token=%token&REF=%ref';
+  $url = strtr($url, $github_credentials);
+
+  $options = array(
+    CURLOPT_URL => $url,
+    CURLOPT_USERAGENT => 'Accept: application/vnd.github.v3.raw',
+    CURLOPT_RETURNTRANSFER => TRUE,
+  );
+
+  $response = drush_devops_curl_github($options);
+
+  if (!$response) {
+
+    // TODO: Error message?
+
+    return;
+
+  }
+
+  $repo_info = json_decode($response, TRUE);
+
+  $url = $repo_info['git_url'];
+  $url .= '?access_token=%token';
+  $url = strtr($url, $github_credentials);
+
+  $options = array(
+    CURLOPT_URL => $url,
+    CURLOPT_USERAGENT => 'Accept: application/vnd.github.v3.raw',
+    CURLOPT_RETURNTRANSFER => TRUE,
+  );
+
+  $response = drush_devops_curl_github($options);
+
+  $data = json_decode($response);
+
+  $temp_dir = devtools_tempdir();
+  $temp_path = $temp_dir . '/' . $github_credentials['%file'];
+
+  file_put_contents($temp_path, base64_decode($data->content));
+
+  return $temp_path;
+
+}
+
+function drush_devops_curl_github($options) {
+
+  $ch = curl_init();
+
+  curl_setopt_array($ch, $options);
+
+  if(!$tmp = curl_exec($ch)) {
+    curl_close($ch);
+    return false;
+  }
+
+  if ($errmsg = curl_error($ch) || $tmp == 'Not Found') {
+    curl_close($ch);
+    return false;
+  }
+
+  curl_close($ch);
+  return $tmp;
+
+}
