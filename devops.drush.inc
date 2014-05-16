@@ -3,6 +3,17 @@
  * @file
  */
 
+/*******************************************************************************
+ * # TODO
+ *
+ * ## Features
+ *
+ * - add ability to download private github file using non-token user
+ *   credentials (may be helpful for flexibility and ease of use in different
+ *   environments)
+ *
+ ******************************************************************************/
+
 
 /**
  * Implements hook_drush_init().
