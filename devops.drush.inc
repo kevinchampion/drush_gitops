@@ -20,9 +20,23 @@
  * - add command/s for working with a built site without having to actually run
  *   builds in your environment by pulling from the buildsrepo but pushing to
  *   the install profile or other repo
+ *   - add option to devops-pull to initialize new working copy repo for each
+ *     project rather than move and replace existing repos
+ *   - add option to stash working changes and checkout specific branch to house
+ *     the build result changes
+ *   - add warnings about destruction of local working changes
+ * - add command (devops-clone) for initializing repos of all git projects as
+ *   found in make files, setup task after cloning a buildsrepo to get a new
+ *   environment setup
+ * - add command (devops-component-pull) to refresh each project repo with a
+ *   pull from their origin
+ *
+ * - add logging throughout
  *
  ******************************************************************************/
 
+include_once 'includes/devops.preserverepos.inc';
+include_once 'includes/devops.scanrepos.inc';
 
 /**
  * Implements hook_drush_init().
@@ -68,6 +82,19 @@ function devops_drush_command() {
       'github_ref' => 'The repository ref to retrieve the file from (branch, tag).',
     ),
     'aliases' => array('ops-build, dob'),
+  );
+  $commands['devops-pull'] = array(
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
+    'description' => 'Pull the latest build from the buildsrepo, make sure component project repos are replaced in the process',
+    'arguments' => array(
+      'remote' => 'The remote repository address.',
+      'makefile' => 'The path to core make file that built the site.'
+    ),
+    'required arguments' => 1,
+    'options' => array(
+      'branch' => 'The branch to pull down and merge.',
+    ),
+    'aliases' => array('ops-pull, dop'),
   );
   return $commands;
 }
@@ -430,6 +457,87 @@ function drush_devops_build($build_file = FALSE) {
   drush_shell_exec($command, $tag);
   $command = 'git reset --hard buildsrepo/7.x-1.x-builds';
   drush_shell_exec($command, $tag);
+
+
+}
+
+/**
+ * Integrates the latest upstream build from the buildsrepo into the site.
+ *
+ * This command pulls the latest build from the builds repo and attempts to
+ * preserve or setup individual component projects inside the site with their
+ * component repositories. It does this by first identifying any projects in the
+ * site's make files that are being pulled in via git repositories. It
+ * moves those component repositories to a temporary directory while it
+ * initializes a site-wide repository in the Drupal root, fetches the latest
+ * build from the buildsrepo, checks out that build, and subsequently deletes
+ * the newly initialized repository. This, in-effect, updates the site files to
+ * match the latest build. It then replaces the individual component repos by
+ * moving them back from their temporary directories into their correct site
+ * position.
+ *
+ * @param string $remote
+ *   The path to the git remote buildsrepo.
+ * @param string $makefile
+ *   The path to the site's main make file used to build the entire site.
+ */
+function drush_devops_pull($remote, $makefile) {
+
+  $root = drush_locate_root(drush_cwd());
+
+  if (empty($root)) {
+
+    drush_set_error(dt("No Drupal site could be found, please run within site."));
+
+    return;
+
+  }
+
+  $makefile = realpath($makefile);
+
+  $info = make_parse_info_file($makefile);
+
+  $instance = DevopsPreserveRepos::getInstance();
+  $instance->findRepos($info);
+
+  $moved_projects = $instance->getFoundRepos();
+  // drush_print_r($moved_projects);
+
+  $instance->moveRepos();
+
+
+  // Fetch and reset latest build.
+
+  chdir($root);
+
+  /*if (is_dir('.git')) {
+
+    drush_set_error(dt('A Drupal root level repo already exists. This is not what devops-pull expects.'));
+
+  }*/
+
+  // Create repo.
+  $command = 'git init';
+  drush_shell_exec($command);
+  $command = 'git remote add buildsrepo %s';
+  drush_shell_exec($command, $remote);
+  $command = 'git fetch buildsrepo';
+  drush_shell_exec($command);
+
+  $branch = drush_get_option('branch', '7.x-1.x-builds');
+
+  // Checkout latest build.
+  $command = 'git reset --hard buildsrepo/%s';
+  drush_shell_exec($command, $branch);
+
+  // Get rid of repo.
+  drush_delete_dir('.git', TRUE);
+  unlink('.gitignore');
+
+
+  // Replace the moved_projets.
+
+  $instance->replaceRepos();
 
 
 }
