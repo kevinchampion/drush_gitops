@@ -83,14 +83,28 @@ function devops_drush_command() {
     ),
     'aliases' => array('ops-build, dob'),
   );
+  $commands['devops-clone'] = array(
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
+    'description' => 'Clone the buildsrepo, setup component repos.',
+    'arguments' => array(
+      'remote' => 'The remote repository address of the builds repo.',
+      'name' => 'The name of the local directory to clone into.',
+      'makefile' => 'The path to core make file that built the site.'
+    ),
+    'required arguments' => 2,
+    'options' => array(
+      'branch' => 'The branch to pull down and merge.',
+    ),
+    'aliases' => array('ops-clone, doc'),
+  );
   $commands['devops-pull'] = array(
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
     'description' => 'Pull the latest build from the buildsrepo, make sure component project repos are replaced in the process',
     'arguments' => array(
-      'remote' => 'The remote repository address.',
+      'remote' => 'The remote repository address of the builds repo.',
       'makefile' => 'The path to core make file that built the site.'
     ),
-    'required arguments' => 1,
+    'required arguments' => 2,
     'options' => array(
       'branch' => 'The branch to pull down and merge.',
     ),
@@ -462,6 +476,56 @@ function drush_devops_build($build_file = FALSE) {
 }
 
 /**
+ * Clones the buildsrepo to setup the site files, initializes component repos.
+ *
+ * This command clones the latest build from the builds repo and then identifies
+ * individual site components and sets up their working copy repos.
+ *
+ * @param string $remote
+ *   The path to the git remote buildsrepo.
+ * @param string $makefile
+ *   The path to the site's main make file used to build the entire site.
+ */
+function drush_devops_clone($remote, $name, $makefile) {
+
+  // Clone repo.
+  $command = 'git clone %s %s';
+  drush_shell_exec($command, $remote, $name);
+
+  $site_root = realpath($name);
+
+  if (!chdir($site_root)) {
+
+    // TODO: Error message.
+
+    return;
+  }
+
+  $branch = drush_get_option('branch', '7.x-1.x-builds');
+
+  // Checkout latest build.
+  $command = 'git reset --hard origin/%s';
+  drush_shell_exec($command, $branch);
+
+  drush_delete_dir('.git');
+  if (drush_file_not_empty('.gitignore')) {
+    unlink('.gitignore');
+  }
+
+  $makefile = realpath($makefile);
+
+  $info = make_parse_info_file($makefile);
+
+  $instance = DevopsPreserveRepos::getInstance();
+  $instance->findRepos($info);
+  $instance->initRepos($site_root);
+
+  // TODO: Add message that they'll likely want/need to run drush site-install.
+
+
+}
+
+/**
  * Integrates the latest upstream build from the buildsrepo into the site.
  *
  * This command pulls the latest build from the builds repo and attempts to
@@ -499,10 +563,6 @@ function drush_devops_pull($remote, $makefile) {
 
   $instance = DevopsPreserveRepos::getInstance();
   $instance->findRepos($info);
-
-  $moved_projects = $instance->getFoundRepos();
-  // drush_print_r($moved_projects);
-
   $instance->moveRepos();
 
 
@@ -532,7 +592,9 @@ function drush_devops_pull($remote, $makefile) {
 
   // Get rid of repo.
   drush_delete_dir('.git', TRUE);
-  unlink('.gitignore');
+  if (drush_file_not_empty('.gitignore')) {
+    unlink('.gitignore');
+  }
 
 
   // Replace the moved_projets.

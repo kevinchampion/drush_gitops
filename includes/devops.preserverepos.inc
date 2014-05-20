@@ -96,31 +96,35 @@ class DevopsPreserveRepos {
 
     foreach ($this->found_repos as $repo) {
 
-      drush_move_dir($repo['src'] . '/.git', $repo['dest'] . '/.git', TRUE);
-      if (drush_file_not_empty($repo['src'] . '/.gitignore')) {
-        rename($repo['src'] . '/.gitignore', $repo['dest'] . '/.gitignore');
-      }
+      if ($repo['repo_exists']) {
 
-      // DEBUGGING ***remove***
-      if (is_dir($repo['dest'] . '/.git')) {
+        drush_move_dir($repo['src'] . '/.git', $repo['dest'] . '/.git', TRUE);
+        if (drush_file_not_empty($repo['src'] . '/.gitignore')) {
+          rename($repo['src'] . '/.gitignore', $repo['dest'] . '/.gitignore');
+        }
 
-        drush_print_r($repo['project']['name'] . ' moved to tmp');
+        // DEBUGGING ***remove***
+        if (is_dir($repo['dest'] . '/.git')) {
 
-      }
-      else {
+          drush_print_r($repo['project']['name'] . ' moved to tmp');
 
-        drush_print_r($repo['project']['name'] . ' failed to move to tmp');
+        }
+        else {
 
-      }
+          drush_print_r($repo['project']['name'] . ' failed to move to tmp');
 
-      if (!is_dir($repo['src'] . '/.git')) {
+        }
 
-        drush_print_r($repo['project']['name'] . ' no longer located in site');
+        if (!is_dir($repo['src'] . '/.git')) {
 
-      }
-      else {
+          drush_print_r($repo['project']['name'] . ' no longer located in site');
 
-        drush_print_r($repo['project']['name'] . ' still in site');
+        }
+        else {
+
+          drush_print_r($repo['project']['name'] . ' still in site');
+
+        }
 
       }
 
@@ -135,34 +139,77 @@ class DevopsPreserveRepos {
 
     foreach ($this->found_repos as $repo) {
 
-      drush_move_dir($repo['dest'] . '/.git', $repo['src'] . '/.git', FALSE);
-      if (drush_file_not_empty($repo['dest'] . '/.gitignore')) {
-        rename($repo['dest'] . '/.gitignore', $repo['src'] . '/.gitignore');
+      if ($repo['repo_exists']) {
+
+        drush_move_dir($repo['dest'] . '/.git', $repo['src'] . '/.git', FALSE);
+        if (drush_file_not_empty($repo['dest'] . '/.gitignore')) {
+          rename($repo['dest'] . '/.gitignore', $repo['src'] . '/.gitignore');
+        }
+
+        // TODO: What about .gitignores?
+        // git checkout HEAD^ .gitignore
+
+        // DEBUGGING ***remove***
+        if (is_dir($repo['src'] . '/.git')) {
+
+          drush_print_r($repo['project']['name'] . ' returned from tmp');
+
+        }
+        else {
+
+          drush_print_r($repo['project']['name'] . ' failed to return from tmp');
+
+        }
+
+        if (is_dir($repo['dest'] . '/.git')) {
+
+          drush_print_r($repo['project']['name'] . ' still in tmp');
+
+        }
+        else {
+
+          drush_print_r($repo['project']['name'] . ' no longer located in tmp');
+
+        }
+
       }
 
-      // TODO: What about .gitignores?
-      // git checkout HEAD^ .gitignore
+    }
 
-      // DEBUGGING ***remove***
-      if (is_dir($repo['src'] . '/.git')) {
+  }
 
-        drush_print_r($repo['project']['name'] . ' returned from tmp');
+  /**
+   * Replace all found repos from their temporary location to the project.
+   */
+  public function initRepos($root) {
 
-      }
-      else {
+    if (!chdir($root)) {
 
-        drush_print_r($repo['project']['name'] . ' failed to return from tmp');
+      // TODO: Error message.
 
-      }
+      return;
+    }
 
-      if (is_dir($repo['dest'] . '/.git')) {
+    foreach ($this->found_repos as $repo) {
 
-        drush_print_r($repo['project']['name'] . ' still in tmp');
+      drush_print_r($repo);
+      drush_print_r($root . $repo['src']);
 
-      }
-      else {
+      if (chdir($root . $repo['src'])) {
 
-        drush_print_r($repo['project']['name'] . ' no longer located in tmp');
+        // Create repo.
+        $command = 'git init';
+        drush_shell_exec($command);
+        $command = 'git remote add origin %s';
+        drush_shell_exec($command, $repo['project']['download']['url']);
+        $command = 'git fetch origin';
+        drush_shell_exec($command);
+        $command = 'git reset --hard origin/%s';
+        // TODO: What if this is a tag ref instead of a branch? What about a
+        //       commit hash?
+        drush_shell_exec($command, $repo['project']['download']['branch']);
+        $command = 'git branch -m master %s';
+        drush_shell_exec($command, $repo['project']['download']['branch']);
 
       }
 

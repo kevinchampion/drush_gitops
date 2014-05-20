@@ -209,13 +209,16 @@ class DevopsScanRepos {
 
       $location = $this->getRoot() . '/' . $this->findLocation();
 
+      $this->found_projects = array(
+        'src' => $location,
+        'dest' => $download_location,
+        'project' => $this->project,
+        'repo_exists' => FALSE,
+      );
+
       if (is_dir($location . '/.git')) {
 
-        $this->found_projects = array(
-          'src' => $location,
-          'dest' => $download_location,
-          'project' => $this->project,
-        );
+        $this->found_projects['repo_exists'] = TRUE;
 
       }
 
