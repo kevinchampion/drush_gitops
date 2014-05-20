@@ -374,7 +374,7 @@ function drush_devops_build($build_file = FALSE) {
 
   if (is_dir($builds_dir)) {
 
-    _recursive_rmdir($builds_dir);
+    drush_delete_dir($builds_dir, TRUE);
 
   }
 
@@ -616,26 +616,6 @@ function _drush_devops_gitignore() {
   );
 
   return implode("\n", $ignores);
-
-}
-
-/**
- * Utility to remove a directory and all its contents.
- *
- * @param string $dir
- *   Path to the directory that needs to be removed.
- */
-function _recursive_rmdir($dir) {
-
-  $iterator = new RecursiveDirectoryIterator($dir);
-  foreach (new RecursiveIteratorIterator($iterator, RecursiveIteratorIterator::CHILD_FIRST) as $file) {
-    if ($file->isDir()) {
-       rmdir($file->getPathname());
-    } else {
-       unlink($file->getPathname());
-    }
-  }
-  rmdir($dir);
 
 }
 
