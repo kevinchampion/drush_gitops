@@ -1,4 +1,4 @@
-# Drush DevOps
+# Drush GitOps
 
 ## Scenarios
 
@@ -22,5 +22,47 @@
 
     Drush DevOps Pull will move each individual component's repo to a temporary directory, pull the latest build from the buildsrepo, remove the top-level repository, and replace the individual component repos from the temporary directory back to their component directory in the site.
 
+## Commands
 
+### devops-init
+
+Sets up folder structure for having a vhost/site directory, a
+builds directory for the destination of the result of individual
+builds, and a headless repo for storing the results of the builds.
+
+### devops-build
+
+Adds command to download a make file, run a full build of the site
+from the make file, commit the result of the build and push it to
+the headless buildsrepo, and deploy the new build code to the
+site/vhost.
+
+### devops-clone
+
+Clones full site from the buildsrepo, deletes the main site repo,
+identifies all projects that should have repos, goes through each
+and sets up working copy repo.
+
+### devops-pull
+
+Moves component repos to a temporary directory, initializes drupal
+root repo and pulls the latest build from the buildsrepo, removes
+drupal root repo, and replaces component repos back in their
+correct project directory.
+
+## Requirements & Dependencies
+
+- Drush DevTools
+
+## Deployment Instructions
+
+- Merge code, install utility in your environment.
+- Clear drush caches with `drush cache-clear drush`
+
+## Usage/Test Instructions
+
+- Run `drush devops-init` from an empty directory nested inside another empty directory, or pass it the path of an existing empty directory or the name of a directory you'd like it to create to house your site/vhost `drush devops-init my-site`.
+- Check to see that three directories exist, the vhost/site, the build destination, and the builds repo. The vhost/site and build destination should both contain .git directory and a .gitigore file and should currently have the 7.x-1.x-builds branch checked out. The builds repo directory should contain a headless repo.
+- Run `drush devops-build build-my-site.make` passing in the path to the build file you're building from (can be local file or publicly accessible remote path). Alternatively, run the command with the name of your build file and github details to download the file from a github repo `drush devops-build build-my-site.make --github_user=my-github-username --github_project=my-github-repo-name --github_token=my-github-access-token --github_ref=7.x-1.x`
+- Check to see that the build succeeded to run without error and that the site/vhost now contains a fully file populated site. The repo should be checked out to the 7.x-1.x-builds branch and the git log should now show 2 commits in it, the initial commit and a build commit containing the result of the build you just ran.
 
