@@ -636,7 +636,7 @@ function _drush_devops_download_private_github_file($github_credentials) {
     CURLOPT_RETURNTRANSFER => TRUE,
   );
 
-  $response = drush_devops_curl_github($options);
+  $response = _drush_devops_curl_github($options);
 
   if (!$response) {
 
@@ -658,7 +658,7 @@ function _drush_devops_download_private_github_file($github_credentials) {
     CURLOPT_RETURNTRANSFER => TRUE,
   );
 
-  $response = drush_devops_curl_github($options);
+  $response = _drush_devops_curl_github($options);
 
   $data = json_decode($response);
 
@@ -671,7 +671,7 @@ function _drush_devops_download_private_github_file($github_credentials) {
 
 }
 
-function drush_devops_curl_github($options) {
+function _drush_devops_curl_github($options) {
 
   $ch = curl_init();
 
