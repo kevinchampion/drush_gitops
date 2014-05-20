@@ -1,13 +1,13 @@
 <?php
 /**
  * @file
- * Drush preserve git processing classes.
+ * Drush scan git processing classes.
  */
 
 /**
  * The base project class.
  */
-class DevopsScanRepos {
+class GitopsScanRepos {
 
   /**
    * TRUE if make() has been called, otherwise FALSE.
@@ -27,7 +27,7 @@ class DevopsScanRepos {
   /**
    * Keep track of instances.
    *
-   * @see DevopsScanRepos::getInstance()
+   * @see GitopsScanRepos::getInstance()
    */
   protected static $self = array();
 
@@ -56,7 +56,7 @@ class DevopsScanRepos {
   /**
    *
    */
-  protected $preserve_repos_instance = NULL;
+  protected $persist_repos_instance = NULL;
 
   /**
    *
@@ -105,14 +105,14 @@ class DevopsScanRepos {
    * @return mixed
    *   An instance for the project or FALSE if invalid type.
    */
-  public static function getInstance($type, $project, $preserve_repos_instance) {
+  public static function getInstance($type, $project, $persist_repos_instance) {
     if (!isset(self::$self[$type][$project['name']])) {
-      $class = 'DevopsScanRepos_' . $type;
+      $class = 'GitopsScanRepos_' . $type;
       self::$self[$type][$project['name']] = class_exists($class) ? new $class($project) : FALSE;
     }
     $instance = self::$self[$type][$project['name']];
     $instance->setProject($project);
-    $instance->preserve_repos_instance = $preserve_repos_instance;
+    $instance->persist_repos_instance = $persist_repos_instance;
     return $instance;
   }
 
@@ -246,7 +246,7 @@ class DevopsScanRepos {
 
     $info['parent'] = $path;
 
-    $this->preserve_repos_instance->findRepos($info);
+    $this->persist_repos_instance->findRepos($info);
 
   }
 
@@ -285,7 +285,7 @@ class DevopsScanRepos {
 /**
  * For processing Drupal core projects.
  */
-class DevopsScanRepos_Core extends DevopsScanRepos {
+class GitopsScanRepos_Core extends GitopsScanRepos {
   /**
    * Override constructor for core to adjust project info.
    */
@@ -320,7 +320,7 @@ class DevopsScanRepos_Core extends DevopsScanRepos {
 /**
  * For processing libraries.
  */
-class DevopsScanRepos_Library extends DevopsScanRepos {
+class GitopsScanRepos_Library extends GitopsScanRepos {
   /**
    * Override constructor for libraries to properly set contrib destination.
    */
@@ -360,7 +360,7 @@ class DevopsScanRepos_Library extends DevopsScanRepos {
 /**
  * For processing modules.
  */
-class DevopsScanRepos_Module extends DevopsScanRepos {
+class GitopsScanRepos_Module extends GitopsScanRepos {
   /**
    * Override constructor for modules to properly set contrib destination.
    */
@@ -376,7 +376,7 @@ class DevopsScanRepos_Module extends DevopsScanRepos {
 /**
  * For processing installation profiles.
  */
-class DevopsScanRepos_Profile extends DevopsScanRepos {
+class GitopsScanRepos_Profile extends GitopsScanRepos {
   /**
    * Override contructor for installation profiles to properly set contrib
    * destination.
@@ -397,7 +397,7 @@ class DevopsScanRepos_Profile extends DevopsScanRepos {
 /**
  * For processing themes.
  */
-class DevopsScanRepos_Theme extends DevopsScanRepos {
+class GitopsScanRepos_Theme extends GitopsScanRepos {
   /**
    * Override contructor for themes to properly set contrib destination.
    */
@@ -413,7 +413,7 @@ class DevopsScanRepos_Theme extends DevopsScanRepos {
 /**
  * For processing translations.
  */
-class DevopsScanRepos_Translation extends DevopsScanRepos {
+class GitopsScanRepos_Translation extends GitopsScanRepos {
   /**
    * Override constructor for translations to properly set contrib destination.
    */

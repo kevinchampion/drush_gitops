@@ -3,26 +3,26 @@
  * @file
  */
 
-include_once 'includes/devops.preserverepos.inc';
-include_once 'includes/devops.scanrepos.inc';
+include_once 'includes/gitops.persistrepos.inc';
+include_once 'includes/gitops.scanrepos.inc';
 
 /**
  * Implements hook_drush_init().
  */
-function devops_drush_init() {
+function gitops_drush_init() {
   // Check and ensure that Drush DevTools exists as it is a requirement
-  // for this Drush DevOps package.
+  // for this Drush GitOps package.
   if (!defined('DEVTOOLS_VERSION')) {
-    drush_set_error('DRUSH_DEVOPS: Missing required installed Drush package Drush DevTools. Available: http://github.com/amcgowanca/drush_devtools.');
+    drush_set_error('DRUSH_GITOPS: Missing required installed Drush package Drush DevTools. Available: http://github.com/amcgowanca/drush_devtools.');
   }
 }
 
 /**
  * Implements hook_drush_command().
  */
-function devops_drush_command() {
+function gitops_drush_command() {
   $commands = array();
-  $commands['devops-init'] = array(
+  $commands['gitops-init'] = array(
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
     'description' => 'Initialize the working directory structure for builds and releases.',
     'arguments' => array(
@@ -35,7 +35,7 @@ function devops_drush_command() {
     ),
     'aliases' => array('ops-init, doi'),
   );
-  $commands['devops-build'] = array(
+  $commands['gitops-build'] = array(
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
     'description' => 'Run a build of the site, commit the result of the build, and push to the builds repo.',
     'arguments' => array(
@@ -51,7 +51,7 @@ function devops_drush_command() {
     ),
     'aliases' => array('ops-build, dob'),
   );
-  $commands['devops-clone'] = array(
+  $commands['gitops-clone'] = array(
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
     'description' => 'Clone the buildsrepo, setup component repos.',
     'arguments' => array(
@@ -65,7 +65,7 @@ function devops_drush_command() {
     ),
     'aliases' => array('ops-clone, doc'),
   );
-  $commands['devops-pull'] = array(
+  $commands['gitops-pull'] = array(
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
     'description' => 'Pull the latest build from the buildsrepo, make sure component project repos are replaced in the process',
     'arguments' => array(
@@ -84,15 +84,15 @@ function devops_drush_command() {
 /**
  * Implements hook_drush_help().
  */
-function devops_drush_help($section) {
+function gitops_drush_help($section) {
   switch ($section) {
-    case 'meta:devops:title':
-      return dt('Devops');
+    case 'meta:gitops:title':
+      return dt('GitOps');
   }
 }
 
 /**
- * Initializes a new working directory structure and project for DevOps.
+ * Initializes a new working directory structure and project for GitOps.
  *
  * Creates a directory for building the result of the site build into. Creates
  * a directory for storing a headless repo of the site builds (this is a
@@ -101,7 +101,7 @@ function devops_drush_help($section) {
  * Creates the headless repo. Initialize repositories in builds directory and
  * vhost.
  */
-function drush_devops_init($vhost_dir = FALSE) {
+function drush_gitops_init($vhost_dir = FALSE) {
 
   // Guess dirs if not provided. Set the default vhost_dir to the directory
   // command was called from. Set the default builds dirs to one directory above
@@ -133,7 +133,7 @@ function drush_devops_init($vhost_dir = FALSE) {
 
     $vhost_dir = drush_cwd();
     // Prompt user to ensure they're in the right directory.
-    $confirmation = drush_confirm(dt('You didn\'t pass the site directory parameter, so devops-init assumes you\'re running it from the directory your vhost/site is located in. Run devops-init with the current directory as your site/vhost directory: @vhost_dir?', array('@vhost_dir' => $vhost_dir)));
+    $confirmation = drush_confirm(dt('You didn\'t pass the site directory parameter, so gitops-init assumes you\'re running it from the directory your vhost/site is located in. Run gitops-init with the current directory as your site/vhost directory: @vhost_dir?', array('@vhost_dir' => $vhost_dir)));
 
     if (!$confirmation) {
       return;
@@ -169,7 +169,7 @@ function drush_devops_init($vhost_dir = FALSE) {
 
     // Buildsrepo directory already exists indicating that this site has already
     // been setup. Get out of here so that it's not overwritten accidentally.
-    drush_set_error(dt("This site already exists at $builds_repo_dir. Manually remove this directory or pass a specific builds repo directory to devops-init."));
+    drush_set_error(dt("This site already exists at $builds_repo_dir. Manually remove this directory or pass a specific builds repo directory to gitops-init."));
 
     return;
 
@@ -179,7 +179,7 @@ function drush_devops_init($vhost_dir = FALSE) {
 
     // Builds directory already exists indicating that this site has already
     // been setup. Get out of here so that it's not overwritten accidentally.
-    drush_set_error(dt("This site already exists at $builds_dir. Manually remove this directory or pass a specific builds directory to devops-init."));
+    drush_set_error(dt("This site already exists at $builds_dir. Manually remove this directory or pass a specific builds directory to gitops-init."));
 
     return;
 
@@ -195,9 +195,9 @@ function drush_devops_init($vhost_dir = FALSE) {
   drush_shell_exec($command);
   $command = 'git config receive.denynonfastforwards true';
   drush_shell_exec($command);
-  $command = 'git config drushdevops.builddir %s';
+  $command = 'git config drushgitops.builddir %s';
   drush_shell_exec($command, $builds_dir);
-  $command = 'git config drushdevops.buildsrepodir %s';
+  $command = 'git config drushgitops.buildsrepodir %s';
   drush_shell_exec($command, $builds_repo_dir);
 
   // drush_print($builds_dir);
@@ -211,7 +211,7 @@ function drush_devops_init($vhost_dir = FALSE) {
   drush_shell_exec($command);
 
   // Create .gitignore.
-  file_put_contents('.gitignore', _drush_devops_gitignore());
+  file_put_contents('.gitignore', _drush_gitops_gitignore());
 
   // Initial commit, new branch, push to headless.
   $command = 'git add .';
@@ -245,7 +245,7 @@ function drush_devops_init($vhost_dir = FALSE) {
 }
 
 /**
- * Initializes a new working directory structure and project for DevOps.
+ * Initializes a new working directory structure and project for GitOps.
  *
  * Creates a directory for building the result of the site build into. Creates
  * a directory for storing a headless repo of the site builds (this is a
@@ -254,7 +254,7 @@ function drush_devops_init($vhost_dir = FALSE) {
  * Creates the headless repo. Initialize repositories in builds directory and
  * vhost.
  */
-function drush_devops_build($build_file = FALSE) {
+function drush_gitops_build($build_file = FALSE) {
 
   // If the vhost directory is not specified, use the current working directory.
   // Otherwise we will attempt to retrieve the absolute path and ensure it
@@ -278,7 +278,7 @@ function drush_devops_build($build_file = FALSE) {
 
       $vhost_dir = drush_cwd();
       // Prompt user to ensure they're in the right directory.
-      $confirmation = drush_confirm(dt('You didn\'t pass the site directory parameter, so devops-build assumes you\'re running it from the directory you want to deploy to. Run the build and deploy to this directory: @vhost_dir?', array('@vhost_dir' => $vhost_dir)));
+      $confirmation = drush_confirm(dt('You didn\'t pass the site directory parameter, so gitops-build assumes you\'re running it from the directory you want to deploy to. Run the build and deploy to this directory: @vhost_dir?', array('@vhost_dir' => $vhost_dir)));
 
       if (!$confirmation) {
         return;
@@ -321,7 +321,7 @@ function drush_devops_build($build_file = FALSE) {
 
     }
 
-    $build_file = _drush_devops_download_private_github_file($github_credentials);
+    $build_file = _drush_gitops_download_private_github_file($github_credentials);
 
   }
 
@@ -339,9 +339,9 @@ function drush_devops_build($build_file = FALSE) {
 
   if (!is_dir($builds_repo_dir)) {
 
-    // Buildsrepo directory doesn't exist indicating that devops_init hasn't
+    // Buildsrepo directory doesn't exist indicating that gitops_init hasn't
     // been run.
-    drush_set_error(dt("The builds repo directory doesn't exist. Run `drush devops-init` to setup structure or otherwise determine why this directory is not present."));
+    drush_set_error(dt("The builds repo directory doesn't exist. Run `drush gitops-init` to setup structure or otherwise determine why this directory is not present."));
 
     return;
 
@@ -349,7 +349,7 @@ function drush_devops_build($build_file = FALSE) {
 
   chdir($builds_repo_dir);
 
-  $command = 'git config drushdevops.builddir';
+  $command = 'git config drushgitops.builddir';
   drush_shell_exec($command);
   $builds_dir = drush_shell_exec_output();
   $builds_dir = $builds_dir[0];
@@ -454,7 +454,7 @@ function drush_devops_build($build_file = FALSE) {
  * @param string $makefile
  *   The path to the site's main make file used to build the entire site.
  */
-function drush_devops_clone($remote, $name, $makefile) {
+function drush_gitops_clone($remote, $name, $makefile) {
 
   // Clone repo.
   $command = 'git clone %s %s';
@@ -484,7 +484,7 @@ function drush_devops_clone($remote, $name, $makefile) {
 
   $info = make_parse_info_file($makefile);
 
-  $instance = DevopsPreserveRepos::getInstance();
+  $instance = GitopsPersistRepos::getInstance();
   $instance->findRepos($info);
   $instance->initRepos($site_root);
 
@@ -513,7 +513,7 @@ function drush_devops_clone($remote, $name, $makefile) {
  * @param string $makefile
  *   The path to the site's main make file used to build the entire site.
  */
-function drush_devops_pull($remote, $makefile) {
+function drush_gitops_pull($remote, $makefile) {
 
   $root = drush_locate_root(drush_cwd());
 
@@ -529,7 +529,7 @@ function drush_devops_pull($remote, $makefile) {
 
   $info = make_parse_info_file($makefile);
 
-  $instance = DevopsPreserveRepos::getInstance();
+  $instance = GitopsPersistRepos::getInstance();
   $instance->findRepos($info);
   $instance->moveRepos();
 
@@ -540,7 +540,7 @@ function drush_devops_pull($remote, $makefile) {
 
   /*if (is_dir('.git')) {
 
-    drush_set_error(dt('A Drupal root level repo already exists. This is not what devops-pull expects.'));
+    drush_set_error(dt('A Drupal root level repo already exists. This is not what gitops-pull expects.'));
 
   }*/
 
@@ -585,7 +585,7 @@ function drush_devops_pull($remote, $makefile) {
  *   Contents of the gitignore file to be used for the buildsrepo (the result
  *   of the build containing all of the site code).
  */
-function _drush_devops_gitignore() {
+function _drush_gitops_gitignore() {
 
   $ignores = array(
     '# Ignore configuration files that may contain sensitive information.',
@@ -655,7 +655,7 @@ function _drush_devops_gitignore() {
  * @param [type] $github_credentials [description]
  * @return [type]
  */
-function _drush_devops_download_private_github_file($github_credentials) {
+function _drush_gitops_download_private_github_file($github_credentials) {
 
   $url = 'https://api.github.com/repos/%user/%project/contents/%file?access_token=%token&REF=%ref';
   $url = strtr($url, $github_credentials);
@@ -666,7 +666,7 @@ function _drush_devops_download_private_github_file($github_credentials) {
     CURLOPT_RETURNTRANSFER => TRUE,
   );
 
-  $response = _drush_devops_curl_github($options);
+  $response = _drush_gitops_curl_github($options);
 
   if (!$response) {
 
@@ -688,7 +688,7 @@ function _drush_devops_download_private_github_file($github_credentials) {
     CURLOPT_RETURNTRANSFER => TRUE,
   );
 
-  $response = _drush_devops_curl_github($options);
+  $response = _drush_gitops_curl_github($options);
 
   $data = json_decode($response);
 
@@ -701,7 +701,7 @@ function _drush_devops_download_private_github_file($github_credentials) {
 
 }
 
-function _drush_devops_curl_github($options) {
+function _drush_gitops_curl_github($options) {
 
   $ch = curl_init();
 

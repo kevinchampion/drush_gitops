@@ -16,12 +16,12 @@
 /**
  * The base project class.
  */
-class DevopsPreserveRepos {
+class GitopsPersistRepos {
 
   /**
    * Keep track of instances.
    *
-   * @see DevopsPreserveRepos::getInstance()
+   * @see GitopsPersistRepos::getInstance()
    */
   protected static $self = array();
 
@@ -49,7 +49,7 @@ class DevopsPreserveRepos {
    *   An instance for the project or FALSE if invalid type.
    */
   public static function getInstance() {
-    return new DevopsPreserveRepos();
+    return new GitopsPersistRepos();
   }
 
   public function getFoundRepos() {
@@ -73,7 +73,7 @@ class DevopsPreserveRepos {
       $project['name'] = $key;
       $project['parent'] = $info['parent'];
 
-      $instance = DevopsScanRepos::getInstance($project['type'], $project, $this);
+      $instance = GitopsScanRepos::getInstance($project['type'], $project, $this);
 
       $instance->findRepos();
 
