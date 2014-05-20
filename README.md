@@ -66,3 +66,34 @@ correct project directory.
 - Run `drush devops-build build-my-site.make` passing in the path to the build file you're building from (can be local file or publicly accessible remote path). Alternatively, run the command with the name of your build file and github details to download the file from a github repo `drush devops-build build-my-site.make --github_user=my-github-username --github_project=my-github-repo-name --github_token=my-github-access-token --github_ref=7.x-1.x`
 - Check to see that the build succeeded to run without error and that the site/vhost now contains a fully file populated site. The repo should be checked out to the 7.x-1.x-builds branch and the git log should now show 2 commits in it, the initial commit and a build commit containing the result of the build you just ran.
 
+ ## TODO
+
+  - add documentation
+  - split out helper functions into their own files
+  - determine if some procedural steps in command should be broken into their
+    own functions
+  - add logging throughout
+  - test (and add if needed) the ability to host the buildsrepo on a remote service like github
+
+
+  ### Features
+
+  - add ability to download private github file using non-token user
+    credentials (may be helpful for flexibility and ease of use in different
+    environments)
+  x add command/s for working with a built site without having to actually run
+    builds in your environment by pulling from the buildsrepo but pushing to
+    the install profile or other repo
+    - add option to devops-pull to initialize new working copy repo for each
+      project rather than move and replace existing repos
+    - add option to stash working changes and checkout specific branch to house
+      the build result changes
+    - add warnings about destruction of local working changes
+  x add command (devops-clone) for initializing repos of all git projects as
+    found in make files, setup task after cloning a buildsrepo to get a new
+    environment setup
+  - add command (devops-component-pull) to refresh each project repo with a
+    pull from their origin
+  - add command (devops deploy) to deploy the latest code from the buildsrepo to another environment
+
+

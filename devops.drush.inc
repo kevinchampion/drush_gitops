@@ -3,38 +3,6 @@
  * @file
  */
 
-/*******************************************************************************
- * # TODO
- *
- * - add documentation
- * - split out helper functions into their own files
- * - determine if some procedural steps in command should be broken into their
- *   own functions
- *
- *
- * ## Features
- *
- * - add ability to download private github file using non-token user
- *   credentials (may be helpful for flexibility and ease of use in different
- *   environments)
- * x add command/s for working with a built site without having to actually run
- *   builds in your environment by pulling from the buildsrepo but pushing to
- *   the install profile or other repo
- *   - add option to devops-pull to initialize new working copy repo for each
- *     project rather than move and replace existing repos
- *   - add option to stash working changes and checkout specific branch to house
- *     the build result changes
- *   - add warnings about destruction of local working changes
- * x add command (devops-clone) for initializing repos of all git projects as
- *   found in make files, setup task after cloning a buildsrepo to get a new
- *   environment setup
- * - add command (devops-component-pull) to refresh each project repo with a
- *   pull from their origin
- *
- * - add logging throughout
- *
- ******************************************************************************/
-
 include_once 'includes/devops.preserverepos.inc';
 include_once 'includes/devops.scanrepos.inc';
 
