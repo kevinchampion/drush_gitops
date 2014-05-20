@@ -80,6 +80,7 @@ correct project directory.
     own functions
   - add logging throughout
   - test (and add if needed) the ability to host the buildsrepo on a remote service like github
+  - remove drush_devtools dependency if it makes sense
 
 
   ### Features
@@ -90,11 +91,11 @@ correct project directory.
   x add command/s for working with a built site without having to actually run
     builds in your environment by pulling from the buildsrepo but pushing to
     the install profile or other repo
-    - add option to gitops-pull to initialize new working copy repo for each
-      project rather than move and replace existing repos
-    - add option to stash working changes and checkout specific branch to house
-      the build result changes
-    - add warnings about destruction of local working changes
+      - add option to gitops-pull to initialize new working copy repo for each
+        project rather than move and replace existing repos
+      - add option to stash working changes and checkout specific branch to house
+        the build result changes
+      - add warnings about destruction of local working changes
   x add command (gitops-clone) for initializing repos of all git projects as
     found in make files, setup task after cloning a buildsrepo to get a new
     environment setup
