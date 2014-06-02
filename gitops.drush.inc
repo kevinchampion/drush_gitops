@@ -34,7 +34,7 @@ function gitops_drush_command() {
       'builds_dir' => 'The directory path to the build destination.',
       'builds_repo_dir' => 'The directory path to the headless builds repo.',
     ),
-    'aliases' => array('ops-init, doi'),
+    'aliases' => array('goinit'),
   );
   $commands['gitops-build'] = array(
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
@@ -50,7 +50,7 @@ function gitops_drush_command() {
       'github_project' => 'The Github project/repository name.',
       'github_ref' => 'The repository ref to retrieve the file from (branch, tag).',
     ),
-    'aliases' => array('ops-build, dob'),
+    'aliases' => array('gobuild'),
   );
   $commands['gitops-clone'] = array(
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
@@ -64,7 +64,7 @@ function gitops_drush_command() {
     'options' => array(
       'branch' => 'The branch to pull down and merge.',
     ),
-    'aliases' => array('ops-clone, doc'),
+    'aliases' => array('goclone'),
   );
   $commands['gitops-pull'] = array(
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
@@ -77,7 +77,7 @@ function gitops_drush_command() {
     'options' => array(
       'branch' => 'The branch to pull down and merge.',
     ),
-    'aliases' => array('ops-pull, dop'),
+    'aliases' => array('gopull'),
   );
   return $commands;
 }
