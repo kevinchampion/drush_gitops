@@ -418,7 +418,7 @@ function drush_gitops_build($build_file = FALSE) {
   // 'keep-redundant-commits' to ensure that if the new build does not change
   // any code from the previous build, a commit is still recorded in the repo
   // history so that it is an accurate representation of the build history.
-  $command = 'git cherry-pick --keep-redundant-commits --strategy-option=theirs master~0';
+  $command = 'git cherry-pick --keep-redundant-commits --strategy=subtree master~0';
   drush_shell_exec($command);
   $command = 'git push buildsrepo 7.x-1.x-builds';
   drush_shell_exec($command);
