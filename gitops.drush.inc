@@ -452,6 +452,8 @@ function drush_gitops_build($build_file = FALSE) {
  *
  * @param string $remote
  *   The path to the git remote buildsrepo.
+ * @param string $name
+ *   The name of the resultant site root directory.
  * @param string $makefile
  *   The path to the site's main make file used to build the entire site.
  */
@@ -465,9 +467,10 @@ function drush_gitops_clone($remote, $name, $makefile) {
 
   if (!chdir($site_root)) {
 
-    // TODO: Error message.
+    drush_set_error(dt('The clone didn\'t work and the site root was not created. Check to make sure the repo path/address is correct and there are no permissions or access issues.'));
 
     return;
+
   }
 
   $branch = drush_get_option('branch', '7.x-1.x-builds');
