@@ -128,6 +128,11 @@ function drush_gitops_init($vhost_dir = FALSE) {
       }
 
     }
+    else {
+
+      $vhost_dir = $vhost_dir_realpath;
+
+    }
 
   }
   else {
@@ -144,6 +149,9 @@ function drush_gitops_init($vhost_dir = FALSE) {
 
   $builds_dir = drush_get_option('builds_dir', FALSE);
   $builds_repo_dir = drush_get_option('builds_repo_dir', FALSE);
+
+  $builds_dir = realpath($builds_dir);
+  $builds_repo_dir = realpath($builds_repo_dir);
 
   if (!$builds_dir || !$builds_repo_dir) {
 
