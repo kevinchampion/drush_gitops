@@ -417,16 +417,30 @@ function drush_gitops_build($build_file = FALSE) {
   drush_shell_exec($command, $tag);
   $command = 'git checkout -b 7.x-1.x-builds buildsrepo/7.x-1.x-builds';
   drush_shell_exec($command);
-  // At this point, master and 7.x-1.x-builds share no common history/ancestor.
-  // As a result, it's not so simple to merge or rebase them as both methods
-  // either tend to throw errors or create merge commits that result in a really
-  // ugly repo history. Instead, use cherry-pick to apply the latest build
-  // commit to the upstream history, using the 'theirs' option to instruct it to
-  // apply the new build on top of upstream no matter what. Also use
-  // 'keep-redundant-commits' to ensure that if the new build does not change
-  // any code from the previous build, a commit is still recorded in the repo
-  // history so that it is an accurate representation of the build history.
-  $command = 'git cherry-pick --keep-redundant-commits --strategy=subtree master~0';
+  $command = 'git rev-list HEAD --count';
+  drush_shell_exec($command);
+  $commit_count = drush_shell_exec_output();
+
+  if ((int) $commit_count <= 1) {
+
+    // At this point, master and 7.x-1.x-builds share no common history/ancestor.
+    // As a result, it's not so simple to merge or rebase them as both methods
+    // either tend to throw errors or create merge commits that result in a really
+    // ugly repo history. Instead, use cherry-pick to apply the latest build
+    // commit to the upstream history, using the 'theirs' option to instruct it to
+    // apply the new build on top of upstream no matter what. Also use
+    // 'keep-redundant-commits' to ensure that if the new build does not change
+    // any code from the previous build, a commit is still recorded in the repo
+    // history so that it is an accurate representation of the build history.
+    $command = 'git cherry-pick --keep-redundant-commits --strategy-option=theirs master~0';
+
+  }
+  else {
+
+    $command = 'git cherry-pick --keep-redundant-commits --strategy=subtree master~0';
+
+  }
+
   drush_shell_exec($command);
   $command = 'git push buildsrepo 7.x-1.x-builds';
   drush_shell_exec($command);
