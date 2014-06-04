@@ -153,24 +153,25 @@ function drush_gitops_init($vhost_dir = FALSE) {
   $builds_dir = realpath($builds_dir);
   $builds_repo_dir = realpath($builds_repo_dir);
 
-  if (!$builds_dir || !$builds_repo_dir) {
+  if (!empty($builds_dir) || !empty($builds_repo_dir)) {
 
     $vhost_parts = explode('/', $vhost_dir);
     $vhost_name = array_pop($vhost_parts);
 
-    if (!$builds_dir) {
+    if (!empty($builds_dir)) {
 
       $builds_dir = implode('/', $vhost_parts) . '/' . $vhost_name . '_build';
 
     }
 
-    if (!$builds_repo_dir) {
+    if (!empty($builds_repo_dir)) {
 
       $builds_repo_dir = implode('/', $vhost_parts) . '/' . $vhost_name . '_builds_repo';
 
     }
 
   }
+
 
   // Handle input errors to catch mistakes before they cause problems.
 
